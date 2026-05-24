@@ -7,10 +7,7 @@
   "plugins": [
     {
       "name": "lvde",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/LucEnden/personal-claude-skills.git"
-      },
+      "source": "./",
       "description": "Personal Claude Code skills: ISO-25010 quality review and coding practice review",
       "category": "code-review"
     }
