@@ -8,8 +8,8 @@
     {
       "name": "lvde",
       "source": {
-        "source": "github",
-        "repo": "LucEnden/personal-claude-skills"
+        "source": "url",
+        "url": "https://github.com/LucEnden/personal-claude-skills.git"
       },
       "description": "Personal Claude Code skills: ISO-25010 quality review and coding practice review",
       "category": "code-review"
