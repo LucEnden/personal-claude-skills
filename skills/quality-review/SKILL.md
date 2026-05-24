@@ -1,5 +1,5 @@
 ---
-name: software-quality-review
+name: quality-review
 description: >
   Assess a single component's code quality using ISO-25010 criteria adapted for
   component-level evaluation. Infers purpose from code/docs, checks against

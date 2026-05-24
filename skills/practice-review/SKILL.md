@@ -1,5 +1,5 @@
 ---
-name: coding-practice-review
+name: practice-review
 description: Analyzes one or more source files against the project's coding practices defined in CODING_PRACTICES.md and produces a structured Markdown report. Triggers when the user invokes /practice-review, asks to "check coding practices", "review code style", or "audit a file for violations".
 user-invocable: true
 ---
