@@ -55,7 +55,15 @@ For each file, check it against every practice in `CODING_PRACTICES.md`. For eac
 
 If a file has zero violations for a practice, do not list that practice in its result table.
 
-### 6. Generate the report
+### 6. Generate and save the report
+
+Save the report as a Markdown file in `.claude/reports/` (create directory if absent).
+
+Filename: `<first-filename-stem>-practice-review-<YYYY-MM-DD>.md`
+
+Example: `.claude/reports/validators-practice-review-2026-05-25.md`
+
+Tell the user the saved path after writing.
 
 Output the report exactly in this structure:
 
@@ -121,6 +129,7 @@ Output the report exactly in this structure:
 
 ## Rules
 
+- Always write the report to `.claude/reports/<stem>-practice-review-<date>.md`. Do not only print it to the conversation.
 - Analyze files in isolation. Do not penalize a file for a violation that lives elsewhere.
 - Only report practices that appear in `CODING_PRACTICES.md`. Do not invent new ones.
 - If a file has no violations: write "No violations found." in the paragraph; omit the table.

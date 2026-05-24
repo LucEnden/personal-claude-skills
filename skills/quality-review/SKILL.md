@@ -71,6 +71,16 @@ Evaluate each criterion:
 - **Recommended Actions:** [What to do next]
 ```
 
+### Step 5: Save Report
+
+Save the report as a Markdown file in `.claude/reports/` (create directory if absent).
+
+Filename: `<component-name>-quality-<YYYY-MM-DD>.md`
+
+Example: `.claude/reports/TransactionForm-quality-2026-05-25.md`
+
+Tell the user the saved path after writing.
+
 ## Usage
 
 ```bash
