@@ -4,10 +4,7 @@ description: >
   Assess a single component's code quality using ISO-25010 criteria adapted for
   component-level evaluation. Infers purpose from code/docs, checks against
   coding standards, and provides structured quality assessment.
-triggers:
-  - /quality
-  - evaluate component
-  - software quality review
+  Invoke as /lvde:quality-review <path>.
 ---
 
 ## Purpose
@@ -78,13 +75,13 @@ Evaluate each criterion:
 
 ```bash
 # Basic review
-/quality src/components/TransactionForm.tsx
+/lvde:quality-review src/components/TransactionForm.tsx
 
 # With standards context
-/quality src/lib/validators.ts --standards CLAUDE.md
+/lvde:quality-review src/lib/validators.ts --standards CLAUDE.md
 
 # Focus on specific areas
-/quality src/hooks/useData.ts --focus maintainability,testability
+/lvde:quality-review src/hooks/useData.ts --focus maintainability,testability
 ```
 
 ## Parameters

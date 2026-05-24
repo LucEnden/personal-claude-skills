@@ -1,7 +1,6 @@
 ---
 name: practice-review
-description: Analyzes one or more source files against the project's coding practices defined in CODING_PRACTICES.md and produces a structured Markdown report. Triggers when the user invokes /practice-review, asks to "check coding practices", "review code style", or "audit a file for violations".
-user-invocable: true
+description: Analyzes one or more source files against the project's coding practices defined in CODING_PRACTICES.md and produces a structured Markdown report. Invoke as /lvde:practice-review <file> [file2 ...].
 ---
 
 # Coding Practice Review
@@ -10,7 +9,7 @@ Analyze source files for adherence to the project's coding practices and produce
 
 ## When Invoked
 
-The user calls `/practice-review <file> [file2 file3 ...]` or asks to check files against coding practices.
+The user calls `/lvde:practice-review <file> [file2 file3 ...]` or asks to check files against coding practices.
 
 ---
 
