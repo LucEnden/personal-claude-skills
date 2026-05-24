@@ -1,24 +1,14 @@
 {
-  "version": "1.0",
-  "skills": [
+  "name": "personal-claude-skills",
+  "owner": {
+    "name": "LucEnden",
+    "email": "luc.vandenenden@gmail.com"
+  },
+  "plugins": [
     {
-      "name": "software-quality-review",
-      "description": "Assess a single component's code quality using ISO-25010 criteria. Infers purpose from code/docs, checks against project coding standards, and produces a structured quality report. Trigger: /quality <path>",
-      "source": {
-        "type": "github",
-        "repo": "LucEnden/personal-claude-skills",
-        "path": "skills/software-quality-review"
-      },
-      "category": "code-review"
-    },
-    {
-      "name": "coding-practice-review",
-      "description": "Analyzes one or more source files against the project's coding practices defined in CODING_PRACTICES.md and produces a structured Markdown report with violations, suggestions, and severity. Trigger: /practice-review <file> [file2 ...]",
-      "source": {
-        "type": "github",
-        "repo": "LucEnden/personal-claude-skills",
-        "path": "skills/coding-practice-review"
-      },
+      "name": "personal-claude-skills",
+      "source": "./",
+      "description": "Personal Claude Code skills: ISO-25010 quality review and coding practice review",
       "category": "code-review"
     }
   ]
