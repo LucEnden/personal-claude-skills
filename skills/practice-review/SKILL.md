@@ -5,7 +5,7 @@ description: Analyzes one or more source files against the project's coding prac
 
 # Coding Practice Review
 
-Analyze source files for adherence to the project's coding practices and produce a structured Markdown report.
+Analyze source files for adherence to the project's coding practices. Write inline `[REVIEW]` markers directly into each source file as violations are found (halt-resilient), then produce a compact summary report.
 
 ## When Invoked
 
@@ -40,101 +40,104 @@ To build a GitHub file link:
 
 If no remote exists, use a local format: `` `<COMMIT_SHORT>/<filename>` ``
 
-### 4. Read each target file
+### 4. For each target file (repeat until all done)
 
-Read the full contents of each target file. Analyze it **in isolation** — do not import context from other files or project knowledge unless the practice definition itself requires it (e.g., checking for magic values requires understanding the domain).
+Process one file at a time. Complete all sub-steps for a file before moving to the next.
 
-### 5. Analyze each file
+#### 4a. Read the file
 
-For each file, check it against every practice in `CODING_PRACTICES.md`. For each violation found:
-- Identify the line range(s)
+Read full contents. Analyze in isolation — do not import context from other files unless the practice definition itself requires it.
+
+#### 4b. Analyze against all practices
+
+For each violation found:
+- Identify the line number(s)
 - Name the practice violated
-- State the specific violation concisely (1 sentence)
-- Suggest a concrete fix (1 sentence or short code snippet)
+- State the violation (1 sentence)
+- State the fix (1 sentence or short snippet)
 - Assign severity: **High**, **Medium**, or **Low**
 
-If a file has zero violations for a practice, do not list that practice in its result table.
+Collect all violations for this file before writing any markers.
 
-### 6. Generate and save the report
+#### 4c. Write `[REVIEW]` markers into the source file
 
-Save the report as a Markdown file in `.claude/reports/` (create directory if absent).
+**Write markers immediately — do not wait until all files are analyzed.**
+
+For each violation, insert a comment on the line immediately above the violating line. Write markers **from the highest line number to the lowest** (bottom-to-top) so earlier insertions do not shift subsequent line numbers.
+
+**Comment syntax by file type:**
+- `.ts`, `.tsx`, `.js`, `.jsx`, `.go`, `.java`, `.cs` → `// [REVIEW-<SEVERITY>]: <violation>. Fix: <suggestion>`
+- `.py`, `.rb`, `.sh` → `# [REVIEW-<SEVERITY>]: <violation>. Fix: <suggestion>`
+- Other → `// [REVIEW-<SEVERITY>]: <violation>. Fix: <suggestion>`
+
+Severity in the marker is `HIGH`, `MEDIUM`, or `LOW` (uppercase).
+
+For a violation spanning multiple non-contiguous lines (e.g., 12, 47, 89), place the marker above the first line of the violation.
+
+For a violation spanning a contiguous range (e.g., 12–18), place the marker above line 12.
+
+Example (TypeScript):
+```typescript
+// [REVIEW-HIGH]: Triple-nested if/else; only reached after 3 conditions. Fix: extract inner conditions as guard clauses.
+if (a) {
+  if (b) {
+    if (c) { ... }
+  }
+}
+```
+
+If a file has zero violations, skip 4c entirely.
+
+#### 4d. Accumulate summary rows
+
+For each violation written, record:
+- File name (short), line(s), severity, practice name, violation summary, suggestion summary
+
+### 5. Write summary report
+
+After all files are processed, save the report to `.claude/reports/` (create directory if absent).
 
 Filename: `<first-filename-stem>-practice-review-<YYYY-MM-DD>.md`
 
 Example: `.claude/reports/validators-practice-review-2026-05-25.md`
 
-Tell the user the saved path after writing.
-
-Output the report exactly in this structure:
-
----
+Report structure:
 
 ```markdown
-# Coding Practice Report
+# Coding Practice Review
 
 - **Project:** <project name from package.json or CLAUDE.md>
-- **Date:** <ISO 8601 date and time, e.g. 2026-05-23T14:30:00>
-- **Analyst:** <model name, e.g. claude-sonnet-4-6> / <engineer if known>
-
-<details>
-<summary>Files Analyzed</summary>
+- **Date:** <ISO 8601 date and time>
+- **Analyst:** <model name>
 
 ## Files Analyzed
 
 - [<COMMIT_SHORT>/<filename>](<github_link_with_commit>)
 - ...
 
-</details>
+## Violations
 
-<details>
-<summary>Practices Checked</summary>
+| File | Line(s) | Severity | Practice | Violation | Suggestion |
+|------|---------|----------|----------|-----------|------------|
+| auth.ts | 42 | High | Error Handling | Missing try/catch on fetch | Wrap in try/catch, surface error to caller |
+| validators.ts | 12–18 | High | Never Nesting | Triple-nested if/else | Extract as guard clauses |
+| validators.ts | 89 | Medium | No Magic Values | Literal `"pending"` | Use `TransactionStatus.PENDING` |
 
-## Practices Checked
-
-- **Never Nesting:** Use guard clauses / early returns; max 2 levels of nesting.
-- **Assumption Verification:** All assumptions must be documented or verified with a guard.
-- *(list all practices from CODING_PRACTICES.md with a one-line description)*
-
-</details>
-
-<details>
-<summary>Results</summary>
-
-## Results
-
-### [<COMMIT_SHORT>/<filename>](<github_link>)
-
-<One short paragraph: overall assessment of this file's adherence.>
-
-| Row(s) | Practice | Violation | Suggestion | Severity |
-|--------|----------|-----------|------------|----------|
-| 12–18 | Never Nesting | Triple-nested if/else; inner block only reached after 3 conditions. | Extract inner conditions as guard clauses at the top of the function. | High |
-| 42 | No Magic Values | Literal `"pending"` used in status check. | Replace with `TransactionStatus.PENDING` constant. | Medium |
-
-*(repeat for each file)*
-
-</details>
-
-## Summary
-
-| File | Row(s) | Practice | Violation | Suggestion | Severity |
-|------|--------|----------|-----------|------------|----------|
-| [<COMMIT_SHORT>/<filename>](<github_link>) | 12–18 | Never Nesting | Triple-nested if/else. | Use guard clauses. | High |
-| [<COMMIT_SHORT>/<filename>](<github_link>) | 42 | No Magic Values | Literal `"pending"`. | Use `TransactionStatus.PENDING`. | Medium |
-
-*(all violations from all files in one table, sorted by Severity descending)*
+> **Remove `[REVIEW]` markers** from source files after addressing each item. Do not commit markers.
 ```
+
+Sort Violations table by Severity descending (High → Medium → Low), then by file name.
+
+If a file has no violations, include it in Files Analyzed but omit it from the Violations table. Add a note: "No violations found in `<filename>`."
+
+Tell the user the saved path after writing.
 
 ---
 
 ## Rules
 
-- Always write the report to `.claude/reports/<stem>-practice-review-<date>.md`. Do not only print it to the conversation.
-- Analyze files in isolation. Do not penalize a file for a violation that lives elsewhere.
-- Only report practices that appear in `CODING_PRACTICES.md`. Do not invent new ones.
-- If a file has no violations: write "No violations found." in the paragraph; omit the table.
-- If a violation spans multiple non-contiguous lines, list them comma-separated: `12, 47, 89`.
-- Keep Violation and Suggestion cells short — 1 sentence max each. Put any longer explanation in the paragraph.
-- The Summary table is the most important section. Make sure every row from every per-file table appears in it.
-- Sort Summary by Severity: High → Medium → Low.
+- Write markers to source files **before** writing the summary report. If halted, per-file markers persist.
+- Only report practices from `CODING_PRACTICES.md`. Do not invent new ones.
+- Violation and Suggestion cells: 1 sentence max each.
 - Do NOT wrap the report in a code block — output raw Markdown so it renders correctly.
+- Always write the report file. Do not only print to conversation.

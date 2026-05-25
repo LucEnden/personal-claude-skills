@@ -11,16 +11,21 @@ description: >
 
 Evaluate code quality across 8 ISO-25010 dimensions: functional suitability, performance efficiency, compatibility, usability, reliability, security, maintainability, and portability. Scope limited to single components (functions, React components, utilities, modules).
 
+Write inline `[REVIEW]` markers directly into the source file as findings are identified (halt-resilient), then produce a compact summary report.
+
 ## How It Works
 
 ### Step 1: Analyze Purpose
+
 Extract and infer the component's intended purpose from:
 - Docstrings, JSDoc comments, TypeScript types
 - Function/class name, parameters, return types
 - Test files, usage patterns if available
-- Output: Clear statement of component's intended purpose
+
+Output: Clear statement of component's intended purpose.
 
 ### Step 2: Gather Standards
+
 Collect applicable coding standards and preferences:
 - Check project `CLAUDE.md` for conventions
 - Look for `.eslintrc`, `prettier`, `tsconfig.json`
@@ -31,7 +36,11 @@ Collect applicable coding standards and preferences:
   - Accessibility/localization requirements?
 
 ### Step 3: Assess ISO-25010 Criteria
-Evaluate each criterion:
+
+Evaluate each criterion. As you identify findings, classify them:
+
+- **Line-specific finding** — maps to a concrete location in the file (e.g., missing null check on line 42, magic number on line 89)
+- **Component-level finding** — holistic concern with no single line to point at (e.g., no error boundary, low testability, missing input validation throughout)
 
 | Category | What to Check |
 |----------|---------------|
@@ -44,40 +53,87 @@ Evaluate each criterion:
 | **Maintainability** | Modularity, reusability, analysability, modifiability, testability |
 | **Portability** | Adaptability, replaceability |
 
-### Step 4: Generate Report
+### Step 4: Write inline markers into the source file
 
-```
-## [Component Name]
-**Path:** `src/path/to/component.tsx`
-**Purpose:** [Inferred intention]
+**Write markers immediately after assessing all criteria — do not wait until the report is written.**
 
-### Quality Assessment
+#### Line-specific findings
 
-✓ **Strengths** (ISO-25010 criteria met):
-- **[Criterion]**: Why it excels
+Insert a comment on the line immediately above the violating line. Write markers **from the highest line number to the lowest** (bottom-to-top) so earlier insertions do not shift subsequent line numbers.
 
-⚠ **Areas for Improvement**:
-- **[Criterion]**: Current gap → Recommended fix
+**Comment syntax by file type:**
+- `.ts`, `.tsx`, `.js`, `.jsx`, `.go`, `.java`, `.cs` → `// [REVIEW-<SEVERITY>]: <finding>. Fix: <suggestion>`
+- `.py`, `.rb`, `.sh` → `# [REVIEW-<SEVERITY>]: <finding>. Fix: <suggestion>`
+- Other → `// [REVIEW-<SEVERITY>]: <finding>. Fix: <suggestion>`
 
-❌ **Issues** (standard violations):
-- **[Issue]**: Impact → Required change
+Severity in the marker is `HIGH`, `MEDIUM`, or `LOW` (uppercase).
 
-### Standards Alignment
-- [Standard]: ✓ Compliant / ⚠ Partial / ❌ Non-compliant
-
-### Risk Assessment
-- **Overall Risk Level:** Low / Medium / High
-- **Primary Risk:** [Main concern]
-- **Recommended Actions:** [What to do next]
+Example (TypeScript):
+```typescript
+// [REVIEW-MEDIUM]: Hardcoded timeout value. Fix: extract as named constant REQUEST_TIMEOUT_MS.
+const timeout = 5000;
 ```
 
-### Step 5: Save Report
+#### Component-level findings
 
-Save the report as a Markdown file in `.claude/reports/` (create directory if absent).
+Write a comment block at the top of the file, after any existing file-level comments (copyright headers, module docs) but before imports. If no existing file-level comments, place at the very top.
+
+**Block syntax by file type:**
+- `.ts`, `.tsx`, `.js`, `.jsx`, `.go`, `.java`, `.cs`:
+```
+/* [REVIEW-COMPONENT]
+ * HIGH: <finding>. Fix: <suggestion>
+ * MEDIUM: <finding>. Fix: <suggestion>
+ * LOW: <finding>. Fix: <suggestion>
+ */
+```
+- `.py`, `.rb`:
+```
+# [REVIEW-COMPONENT]
+# HIGH: <finding>. Fix: <suggestion>
+# MEDIUM: <finding>. Fix: <suggestion>
+```
+
+If there are no component-level findings, omit the block entirely.
+
+If there are no findings at all (line-specific or component-level), skip Step 4 entirely.
+
+### Step 5: Write summary report
+
+Save the report to `.claude/reports/` (create directory if absent).
 
 Filename: `<component-name>-quality-<YYYY-MM-DD>.md`
 
 Example: `.claude/reports/TransactionForm-quality-2026-05-25.md`
+
+Report structure:
+
+```markdown
+# Quality Review: ComponentName
+
+- **Path:** `src/path/to/component.tsx`
+- **Purpose:** <inferred purpose>
+- **Date:** <ISO 8601 date and time>
+- **Analyst:** <model name>
+
+## Findings
+
+| Line(s) | Severity | Criterion | Finding | Suggestion |
+|---------|----------|-----------|---------|------------|
+| component | High | Reliability | No error boundary — uncaught throws crash parent tree | Wrap in ErrorBoundary |
+| 42 | Medium | Maintainability | Hardcoded timeout value | Extract as REQUEST_TIMEOUT_MS |
+| 89 | Low | Usability | Unclear parameter name `d` | Rename to `durationMs` |
+
+## Risk Assessment
+
+- **Overall Risk:** Low / Medium / High
+- **Primary Risk:** <main concern>
+- **Recommended Actions:** <what to do next>
+
+> **Remove `[REVIEW]` markers** from the source file after addressing each item. Do not commit markers.
+```
+
+Sort Findings table: component-level rows first, then by line number ascending, then by Severity descending within the same line.
 
 Tell the user the saved path after writing.
 
@@ -104,8 +160,9 @@ Tell the user the saved path after writing.
 
 ## Key Principles
 
-- **Inference over documentation**: Purpose is inferred from code itself—no external docs required
-- **Standards-aware**: Respects project conventions from CLAUDE.md and config files
-- **Actionable**: Recommendations include "why" and "how to fix", not just criticism
-- **Component-scoped**: ISO-25010 adapted for single modules, not system-level
-- **Developer-centric**: Evaluates usability for developers, not end users
+- **Write markers before report** — if halted, per-file markers persist
+- **Inference over documentation** — purpose inferred from code itself
+- **Standards-aware** — respects project conventions from CLAUDE.md and config files
+- **Actionable** — recommendations include "why" and "how to fix", not just criticism
+- **Component-scoped** — ISO-25010 adapted for single modules, not system-level
+- **Developer-centric** — evaluates usability for developers, not end users
