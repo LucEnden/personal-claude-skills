@@ -1,6 +1,6 @@
 ---
 name: test-atom-extract
-description: Scan the test tree for duplicated setup-then-assert patterns and propose an atom extraction into a shared test helper directory. Read-only proposal first; engineer approves before any file is written.
+description: Scan the test tree for duplicated setup-then-assert patterns and propose extracting them into a shared test helper function. Derives project conventions on first run, verifies with engineer, caches to .claude/test-conventions.md. Read-only proposal first; engineer approves before any file is written.
 triggers:
   - "/test-atom-extract"
   - "extract test atom"
@@ -9,38 +9,61 @@ triggers:
 
 # test-atom-extract
 
-Finds test code duplication and proposes extracting it into a shared atom helper directory.
+A *test helper atom* is a small, single-concept shared function that encapsulates a repeated assertion or setup pattern — one behavior, one function, used across multiple test files.
 
-> **Adapt:** This skill uses `tests/_atoms/` as the default atom directory, `tests/_fixtures/` for shared fixtures, and `tests/_lib/flows/` for navigation helpers. Replace these paths with your project's equivalent directories before use.
+This skill finds test code duplication and proposes extracting it into a shared helper directory.
 
-## When to invoke
+## Step 0 — Load or derive conventions
 
-- Periodically as the test tree grows.
-- After authoring a test whose body felt familiar — there's a good chance the same shape exists elsewhere.
-- Never preemptively (no atom is written before a second real occurrence).
+Check for `.claude/test-conventions.md` in the project root.
+
+**File exists** → load it and skip to the Process section below.
+
+**File missing** → derive conventions from the project:
+
+1. **Shared helper directory** — scan the test tree for directories that aggregate reusable helper or utility files. Look for directory names such as `_atoms`, `atoms`, `helpers`, `utils`, `support`, `shared`, `common`, `__helpers__`. Also check if any directory is imported by three or more test files (strong signal). If none found, propose `tests/helpers/` as default.
+
+2. **Fixtures directory** — look for directories named `_fixtures`, `fixtures`, `__fixtures__`, `factories`, `mocks`, `__mocks__`, `stubs`. If multiple candidates exist, pick the one most commonly imported.
+
+3. **Test file pattern** — glob for `**/*.test.*` and `**/*.spec.*`. Take the most common extension (`.ts`, `.py`, `.js`, `.go`, etc.). Note the directory depth and naming convention used by existing test files.
+
+4. **Existing behavior domains** — list any subdirectory names already present inside the shared helper directory. These become the known behavior domains (e.g. `validation`, `auth`, `pagination`).
+
+Then **halt and verify**: present all findings to the engineer via `AskUserQuestion`. Show each derived value, ask for corrections. After confirmation, write `.claude/test-conventions.md` using the format below. All subsequent runs load from this file — no re-derivation.
+
+### .claude/test-conventions.md format
+
+```markdown
+# Test conventions
+<!-- Written by test-atom-extract / test-author. Edit to update. -->
+
+shared_helper_dir: <path>
+fixtures_dir: <path>
+test_glob: <glob pattern, e.g. **/*.test.ts>
+```
 
 ## Process
 
-1. **Scan** all test files for repeated patterns. Look for:
+1. **Scan** all files matching `test_glob` for repeated patterns. Look for:
    - Identical sequences of 3+ statements that include at least one assertion.
-   - Identical fixture setup followed by identical assertions on the same role, label, or selector.
-2. **Cluster** matches by behavior, not by SUT. Group "required-field validation" hits even when they're on different forms.
-3. **Filter**: keep clusters with **≥ 2 occurrences across different test files**. Discard same-file duplication (that's a parameterized test candidate, not an atom).
+   - Identical fixture setup followed by identical assertions on the same subject, field, or identifier.
+2. **Cluster** matches by behavior, not by SUT. Group "required-field validation" hits even when they appear in different test files.
+3. **Filter**: keep clusters with **≥ 2 occurrences across different test files**. Discard same-file duplication (that's a parameterized test candidate, not a shared helper).
 4. **Propose** for each surviving cluster:
-   - Atom name (behavior-as-verb, e.g. `assertRequiredField`).
-   - Target file within the atom directory (`forms`, `tables`, `dialogs`, or a new file if no existing one fits).
-   - Signature (inputs are selectors and i18n keys or string constants; never hardcoded display strings).
+   - Helper name (behavior-as-verb, e.g. `assertRequiredField`).
+   - Target file within `shared_helper_dir`, grouped by behavior domain. Use an existing domain from the conventions file if one fits; otherwise propose a new domain name.
+   - Signature (inputs are identifiers and string constants or keys needed to locate and verify the subject; never hardcode values that vary per call site).
    - Diff for each test site showing the rewrite.
-5. **Halt and ask** via `AskUserQuestion`: accept / reject / rename / merge with existing atom. Only after explicit approval does the skill write.
+5. **Halt and ask** via `AskUserQuestion`: accept / reject / rename / merge with existing helper. Only after explicit approval does the skill write.
 
 ## Hard rules
 
-- One atom = one assertion concept. Split if a single helper needs "and" in its description.
-- Atom signature accepts selectors and text keys or constants as parameters. It does not hardcode either.
-- Atom does not introduce new layers of indirection (no class hierarchies, no `BaseAtom` superclasses).
+- One helper = one assertion concept. Split if a single function needs "and" in its description.
+- Helper signature accepts identifiers and string constants as parameters. It does not hardcode either.
+- Helper does not introduce new layers of indirection (no class hierarchies, no `BaseHelper` superclasses).
 - If a candidate cluster's body diverges by more than 1-2 parameters, do not extract. The "near-identical" cases stay inline until they actually converge.
 
 ## Out of scope
 
-- Page Object Models. If multiple e2e tests share a navigation sequence, that's a test fixture (in `tests/_fixtures/` or equivalent) or a named flow helper (in `tests/_lib/flows/` or equivalent), not an atom.
+- Complex shared setup sequences or flow helpers (e.g. multi-step navigation, repeated test scaffolding). Those belong in `fixtures_dir` or a flow helper directory, not in a single-concept assertion helper.
 - Authoring new tests. This skill only refactors existing ones. New tests are handled by `/test-author`.

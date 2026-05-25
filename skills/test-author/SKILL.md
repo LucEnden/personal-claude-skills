@@ -1,6 +1,6 @@
 ---
 name: test-author
-description: Author a test for a source file or feature. Picks the correct test layer, binds the test to a SPEC.md §V/§T cite, halts to confront the engineer when no cite exists, and enforces selector and naming rules.
+description: Author a test for a source file or feature. Requires SPEC.md. Derives project conventions on first run, verifies with engineer, caches to .claude/test-conventions.md. Picks the correct test layer, binds the test to a SPEC.md §V/§T cite, and halts when no cite exists.
 triggers:
   - "/test-author"
   - "write a test for"
@@ -21,6 +21,46 @@ The skill is **always SPEC-bound**: no cite, no test. If the SPEC has no relevan
 
 If neither given, ask the engineer.
 
+## Step 0 — Load or derive conventions
+
+Check for `.claude/test-conventions.md` in the project root.
+
+**File exists** → load it and proceed to Step 1.
+
+**File missing** → derive conventions from the project:
+
+1. **Shared helper directory** — scan the test tree for directories that aggregate reusable helper or utility files. Look for directory names such as `_atoms`, `atoms`, `helpers`, `utils`, `support`, `shared`, `common`, `__helpers__`. Also check if any directory is imported by three or more test files (strong signal). If none found, propose `tests/helpers/` as default.
+
+2. **Fixtures directory** — look for directories named `_fixtures`, `fixtures`, `__fixtures__`, `factories`, `mocks`, `__mocks__`, `stubs`. If multiple candidates exist, pick the one most commonly imported.
+
+3. **Test file pattern** — glob for `**/*.test.*` and `**/*.spec.*`. Take the most common extension (`.ts`, `.py`, `.js`, `.go`, etc.). Note the directory depth and naming convention used by existing test files.
+
+4. **Test runner commands** — check in order: `package.json` scripts for `test`, `test:unit`, `test:integration`, `test:e2e`; `Makefile` for test targets; `pytest.ini` / `pyproject.toml` / `setup.cfg`; `go.mod` (implies `go test ./...`). Record one command per layer present.
+
+5. **i18n helper** — grep test files for common i18n call patterns (`t(`, `i18n.t(`, `useTranslation`, `gettext`, `_(`). If found, identify the import path and function name. If not found, record as none.
+
+6. **Module-group map** — read `SPEC.md` §V section headings and match them to `src/` subdirectory names. Record each match as `<path-prefix> → <§V-prefix>`.
+
+Then **halt and verify**: present all findings to the engineer via `AskUserQuestion`. Show each derived value, ask for corrections. After confirmation, write `.claude/test-conventions.md` using the format below. All subsequent runs load from this file — no re-derivation.
+
+### .claude/test-conventions.md format
+
+```markdown
+# Test conventions
+<!-- Written by test-author / test-atom-extract. Edit to update. -->
+
+shared_helper_dir: <path>
+fixtures_dir: <path>
+test_glob: <glob pattern, e.g. **/*.test.ts>
+runner_unit: <command>
+runner_integration: <command>
+runner_e2e: <command>
+i18n_helper: <import path>::<function> | none
+spec_map: |
+  src/orders/ → V.orders
+  src/auth/ → V.auth
+```
+
 ## Step 1 — Identify the SUT
 
 Read the file. Note:
@@ -31,13 +71,11 @@ Read the file. Note:
 ## Step 2 — Find the SPEC cite
 
 Search `SPEC.md` for relevant `§V.*` invariants and `§T*` tasks. Match by:
-- Page-group prefix — map the file's path segment to the corresponding §V group in your project (e.g., a file under `src/checkout/` maps to `V.checkout.*`; a file under `src/settings/` maps to `V.settings.*`).
-- Behavior keywords — scan §V lines for verbs that match what the SUT does: validation, pagination, route guard, error state, i18n, selection, sorting, etc.
-- Cross-cutting concerns in `§V.cross.*` (or your project's equivalent section) — behaviors that apply app-wide. Every component touches at least one.
+- Module-group prefix — use `spec_map` from the conventions file to map the file's path segment to its §V group.
+- Behavior keywords — scan §V lines for verbs that match what the SUT does: validation, pagination, access control / route guard, error state, i18n, selection, sorting, etc.
+- Cross-cutting concerns in `§V.cross.*` (or your project's equivalent section) — behaviors that apply app-wide. Every module touches at least one.
 
-> **Adapt:** Before running this skill on a new project, add a §V group map to this section (path prefix → §V prefix). Example: `src/orders/ → V.orders`, `src/auth/ → V.auth`. Without this map, cite resolution requires reading §V in full each time.
-
-A test can cite **multiple** ids (e.g. an integration test for a bulk-delete button cites both `V.items.4` and `V.items.5`). Cite all that genuinely apply; do not pad.
+A test can cite **multiple** ids (e.g. an integration test for a bulk-delete action cites both `V.items.4` and `V.items.5`). Cite all that genuinely apply; do not pad.
 
 ## Step 3 — No cite? Halt and converge.
 
@@ -45,7 +83,7 @@ Use `AskUserQuestion` with these four options (order = recommended first):
 
 1. **Add a new §V invariant.** Draft the proposed invariant text and section, then update `SPEC.md` directly or invoke your project's spec skill (e.g., `/spec amend §V.<section>`).
 2. **Tie to an existing related invariant.** List 1-3 candidates from `§V` with rationale ("This is a special case of V.cross.3 because …").
-3. **Promote to §V.cross.** If the behavior applies app-wide (loading state shape, error state shape, i18n key usage), the right place is a new `§V.cross.*` line.
+3. **Promote to §V.cross.** If the behavior applies app-wide (loading state shape, error state shape, auth/permission checks, logging behavior, i18n key usage), the right place is a new `§V.cross.*` line.
 4. **Decline the test.** Document the rationale ("not worth covering because …"). No test is written. The rationale gets returned to the engineer.
 
 If the SUT exists because the engineer is fixing a bug, propose `/spec bug:` instead — the bug entry replaces the cite.
@@ -57,20 +95,19 @@ Never write a test with a fabricated or stretched cite. The cite relation must a
 | SUT shape | Layer | File convention |
 |-----------|-------|-----------------|
 | Pure function with no UI or DB dependencies | unit | `<name>.unit.test.<ext>` |
-| UI component or hook (renders, no navigation) | component or integration | `<name>.component.test.<ext>` or `<name>.integration.test.<ext>` |
-| Multi-component flow (form → submit → feedback) | integration | `<name>.integration.test.<ext>` |
-| Page-level user journey, route guard, or cross-page nav | e2e | `tests/e2e/<page-group>/<name>.e2e.spec.<ext>` |
+| UI component or reactive primitive (renders, no navigation) | component or integration | `<name>.component.test.<ext>` or `<name>.integration.test.<ext>` |
+| Service or repository function (business logic, data access) | unit or integration | `<name>.unit.test.<ext>` or `<name>.integration.test.<ext>` |
+| Multi-unit flow (e.g. form → submit → feedback, or request → handler → response) | integration | `<name>.integration.test.<ext>` |
+| CLI command / script entry point | integration | `<name>.integration.test.<ext>` |
+| Background job, worker, or task | unit or integration | `<name>.unit.test.<ext>` or `<name>.integration.test.<ext>` |
+| Full user journey, access control check, or cross-boundary navigation | e2e | `tests/e2e/<feature-group>/<name>.e2e.spec.<ext>` |
 | API handler / endpoint | unit (handler called directly) or e2e (HTTP) | `<name>.unit.test.<ext>` or `<name>.e2e.spec.<ext>` |
 
-When in doubt, prefer the lowest layer that can faithfully cover the invariant.
+Use `test_glob` from conventions to confirm the correct extension. When in doubt, prefer the lowest layer that can faithfully cover the invariant.
 
-> **Adapt:** Replace `<ext>` with your project's test file extension (`.ts`, `.py`, `.js`, etc.). Adjust directory conventions to match your project layout. If your project uses Storybook, component tests live in `*.stories.<ext>` with a `play()` function.
+## Step 5 — Shared helper check
 
-## Step 5 — Atom check
-
-Search `tests/_atoms/` for any helper whose name matches the behavior you're about to write. If one exists, use it. If not, write the assertion inline — extraction happens later via `/test-atom-extract`, never speculatively.
-
-> **Adapt:** Replace `tests/_atoms/` with your project's shared test helper directory.
+Search `shared_helper_dir` from conventions for any helper whose name matches the behavior you're about to write. If one exists, use it. If not, write the assertion inline — extraction happens later via `/test-atom-extract`, never speculatively.
 
 ## Step 6 — Write the test
 
@@ -91,11 +128,10 @@ Each scenario class that applies gets its own `test(…)` call — do not merge 
 Hard requirements:
 
 - **Filename** carries the layer suffix from Step 4.
-- **Selectors** (for UI tests using Testing Library or Playwright) in this priority order: `getByRole` → `getByLabel` → `getByPlaceholderText` → `getByText` → `getByTestId`. Never: CSS class selectors, tag selectors, `nth-child`, structural combinators. `getByTestId` only if no other option, with a `// testid: <reason>` comment.
-- **Strings** — resolve user-visible text via your project's i18n test helper rather than hardcoding display strings in selectors or assertions. If the project has no i18n, use named constants instead of raw strings.
-
-  > **Adapt:** Replace references to the i18n helper (e.g., `t('key')`) with your project's actual helper path and function.
-
+- **Identifiers / selectors:**
+  - For UI tests (Testing Library, Playwright): prefer accessible selectors in this priority order: `getByRole` → `getByLabel` → `getByPlaceholderText` → `getByText` → `getByTestId`. Never: CSS class selectors, tag selectors, `nth-child`, structural combinators. `getByTestId` only if no other option, with a `// testid: <reason>` comment.
+  - For non-UI tests: use stable identifiers from the public API surface — IDs, keys, return values. Never couple tests to internal implementation names.
+- **Strings** — if `i18n_helper` is set in conventions, resolve user-visible strings through it rather than hardcoding display strings in selectors or assertions. If `i18n_helper` is none, use named constants instead of raw strings.
 - **Cite** mandatory:
   - Vitest: `test('should …', { meta: { spec: 'V.x.y' } }, async () => {…})`. Multiple cites = `spec: ['V.x.y', 'V.cross.1']`.
   - Playwright: tag in title: `test('@spec:V.x.y should …', async ({ page }) => {…})`. Multiple = include several `@spec:…` tags.
@@ -115,23 +151,21 @@ Hard requirements:
 
 ## Step 7 — Verify
 
-Run the new test in isolation using your project's test commands, for example:
+Run the new test in isolation using the runner command from conventions:
 
-- Unit / integration: `npm run test:unit -- <file>` or equivalent
-- Component: `npm run test:component -- <file>` or equivalent
-- E2E: `npm run test:e2e -- <file>` or equivalent
+- Unit: `runner_unit -- <file>`
+- Integration: `runner_integration -- <file>`
+- E2E: `runner_e2e -- <file>`
 
-After green, run `npm run test:spec` (or equivalent) to confirm the cite registers in the coverage report.
+After green, confirm the cite registers in the coverage report if the project has spec-coverage tooling.
 
-> **Adapt:** Replace `npm run test:*` with your project's actual test runner commands.
+## Vendor E2E skills
 
-## Vendor Playwright skills
-
-If the test is E2E and needs network mocking, multi-session, codegen, or trace inspection, defer to the vendor Playwright agent skills installed via `npx playwright-cli install --skills`. Do not duplicate their guidance here.
+If the test is E2E and needs network mocking, multi-session, codegen, or trace inspection, check whether your project has dedicated E2E helper skills or plugins installed. Do not duplicate their guidance here.
 
 ## What this skill never does
 
 - Invent a cite that doesn't reflect the test's actual semantics.
-- Add a `data-testid` (or equivalent test hook) to source code to make a test easier. Use roles + labels. Only add a testid when the SUT genuinely lacks an accessible name, and call that out separately for the engineer.
+- Add a test hook attribute (e.g. `data-testid`) to UI source code to make a test easier. Use roles and labels. Only add a test hook when the SUT genuinely lacks an accessible name, and call that out separately for the engineer.
 - Write a test that asserts implementation details (internal state, function call counts on third-party libs).
-- Pre-build atoms before the second occurrence.
+- Pre-build shared helpers before the second occurrence.
