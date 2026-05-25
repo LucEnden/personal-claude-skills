@@ -1,6 +1,6 @@
 ---
 name: test-atom-extract
-description: Scan the test tree for duplicated setup-then-assert patterns and propose extracting them into a shared test helper function. Derives project conventions on first run, verifies with engineer, caches to .claude/test-conventions.md. Read-only proposal first; engineer approves before any file is written.
+description: Scan the test tree for duplicated setup-then-assert patterns and propose extracting them into a shared test helper function. Derives project conventions on first run, verifies with engineer, caches to TEST_CONVENTIONS.md. Read-only proposal first; engineer approves before any file is written.
 triggers:
   - "/test-atom-extract"
   - "extract test atom"
@@ -15,7 +15,7 @@ This skill finds test code duplication and proposes extracting it into a shared 
 
 ## Step 0 — Load or derive conventions
 
-Check for `.claude/test-conventions.md` in the project root.
+Check for `TEST_CONVENTIONS.md` in the project root.
 
 **File exists** → load it and skip to the Process section below.
 
@@ -29,9 +29,9 @@ Check for `.claude/test-conventions.md` in the project root.
 
 4. **Existing behavior domains** — list any subdirectory names already present inside the shared helper directory. These become the known behavior domains (e.g. `validation`, `auth`, `pagination`).
 
-Then **halt and verify**: present all findings to the engineer via `AskUserQuestion`. Show each derived value, ask for corrections. After confirmation, write `.claude/test-conventions.md` using the format below. All subsequent runs load from this file — no re-derivation.
+Then **halt and verify**: present all findings to the engineer via `AskUserQuestion`. Show each derived value, ask for corrections. After confirmation, write `TEST_CONVENTIONS.md` using the format below. All subsequent runs load from this file — no re-derivation.
 
-### .claude/test-conventions.md format
+### TEST_CONVENTIONS.md format
 
 ```markdown
 # Test conventions

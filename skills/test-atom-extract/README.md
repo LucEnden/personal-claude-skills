@@ -12,7 +12,7 @@ Scans the test tree for duplicated setup-then-assert patterns and proposes extra
 
 ## What it does
 
-1. **Bootstraps conventions** (first run only) — scans the project to derive shared helper directory, fixtures directory, and test file pattern. Asks you to confirm findings, then writes `.claude/test-conventions.md`. Subsequent runs load from that file instantly.
+1. **Bootstraps conventions** (first run only) — scans the project to derive shared helper directory, fixtures directory, and test file pattern. Asks you to confirm findings, then writes `TEST_CONVENTIONS.md`. Subsequent runs load from that file instantly.
 2. **Scans** all test files for repeated patterns: identical 3+ statement sequences containing at least one assertion, repeated across different files.
 3. **Clusters** matches by behavior (not by file or SUT).
 4. **Filters** to clusters with ≥ 2 occurrences across different files. Same-file duplication is a parameterized test candidate, not a shared helper.
@@ -38,4 +38,4 @@ Scans the test tree for duplicated setup-then-assert patterns and proposes extra
 
 ## Shared conventions
 
-Both `test-atom-extract` and `test-author` read from and write to `.claude/test-conventions.md`. Whichever skill runs first on a project bootstraps the file. The other inherits it at no cost.
+Both `test-atom-extract` and `test-author` read from and write to `TEST_CONVENTIONS.md`. Whichever skill runs first on a project bootstraps the file. The other inherits it at no cost.

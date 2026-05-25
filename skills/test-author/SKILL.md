@@ -1,6 +1,6 @@
 ---
 name: test-author
-description: Author a test for a source file or feature. Requires SPEC.md. Derives project conventions on first run, verifies with engineer, caches to .claude/test-conventions.md. Picks the correct test layer, binds the test to a SPEC.md §V/§T cite, and halts when no cite exists.
+description: Author a test for a source file or feature. Requires SPEC.md. Derives project conventions on first run, verifies with engineer, caches to TEST_CONVENTIONS.md. Picks the correct test layer, binds the test to a SPEC.md §V/§T cite, and halts when no cite exists.
 triggers:
   - "/test-author"
   - "write a test for"
@@ -23,7 +23,7 @@ If neither given, ask the engineer.
 
 ## Step 0 — Load or derive conventions
 
-Check for `.claude/test-conventions.md` in the project root.
+Check for `TEST_CONVENTIONS.md` in the project root.
 
 **File exists** → load it and proceed to Step 1.
 
@@ -41,9 +41,9 @@ Check for `.claude/test-conventions.md` in the project root.
 
 6. **Module-group map** — read `SPEC.md` §V section headings and match them to `src/` subdirectory names. Record each match as `<path-prefix> → <§V-prefix>`.
 
-Then **halt and verify**: present all findings to the engineer via `AskUserQuestion`. Show each derived value, ask for corrections. After confirmation, write `.claude/test-conventions.md` using the format below. All subsequent runs load from this file — no re-derivation.
+Then **halt and verify**: present all findings to the engineer via `AskUserQuestion`. Show each derived value, ask for corrections. After confirmation, write `TEST_CONVENTIONS.md` using the format below. All subsequent runs load from this file — no re-derivation.
 
-### .claude/test-conventions.md format
+### TEST_CONVENTIONS.md format
 
 ```markdown
 # Test conventions
