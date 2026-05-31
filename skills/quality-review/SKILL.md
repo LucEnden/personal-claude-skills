@@ -61,10 +61,7 @@ Evaluate each criterion. As you identify findings, classify them:
 
 Insert a comment on the line immediately above the violating line. Write markers **from the highest line number to the lowest** (bottom-to-top) so earlier insertions do not shift subsequent line numbers.
 
-**Comment syntax by file type:**
-- `.ts`, `.tsx`, `.js`, `.jsx`, `.go`, `.java`, `.cs` → `// [REVIEW-<SEVERITY>]: <finding>. Fix: <suggestion>`
-- `.py`, `.rb`, `.sh` → `# [REVIEW-<SEVERITY>]: <finding>. Fix: <suggestion>`
-- Other → `// [REVIEW-<SEVERITY>]: <finding>. Fix: <suggestion>`
+**Comment syntax:** Derive the correct comment syntax from the file extension and surrounding code context. For mixed-syntax files (e.g. `.tsx` where `//` and `<!-- -->` are both valid depending on location), use whichever syntax is valid at the specific line being annotated. The marker text is always: `[REVIEW-<SEVERITY>]: <finding>. Fix: <suggestion>`
 
 Severity in the marker is `HIGH`, `MEDIUM`, or `LOW` (uppercase).
 
@@ -78,21 +75,7 @@ const timeout = 5000;
 
 Write a comment block at the top of the file, after any existing file-level comments (copyright headers, module docs) but before imports. If no existing file-level comments, place at the very top.
 
-**Block syntax by file type:**
-- `.ts`, `.tsx`, `.js`, `.jsx`, `.go`, `.java`, `.cs`:
-```
-/* [REVIEW-COMPONENT]
- * HIGH: <finding>. Fix: <suggestion>
- * MEDIUM: <finding>. Fix: <suggestion>
- * LOW: <finding>. Fix: <suggestion>
- */
-```
-- `.py`, `.rb`:
-```
-# [REVIEW-COMPONENT]
-# HIGH: <finding>. Fix: <suggestion>
-# MEDIUM: <finding>. Fix: <suggestion>
-```
+**Block syntax:** Derive the correct block-comment syntax from the file extension and surrounding code context. The block must open and close using whichever multi-line comment delimiters are valid for that file type. Each severity line inside the block follows the format: `<SEVERITY>: <finding>. Fix: <suggestion>`. The block header is always `[REVIEW-COMPONENT]`.
 
 If there are no component-level findings, omit the block entirely.
 

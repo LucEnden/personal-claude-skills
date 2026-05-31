@@ -1,11 +1,11 @@
-# coding-practice-review
+# practice-review
 
-Audits source files against project coding practices and outputs a structured Markdown report.
+Audits source files against project coding practices. Writes inline `[REVIEW]` markers into each source file as violations are found (halt-resilient), then produces a structured Markdown report saved to `.claude/reports/`.
 
 ## Trigger
 
 ```
-/practice-review <file> [file2 file3 ...]
+/lvde:practice-review <file> [file2 file3 ...]
 ```
 
 Also triggers on: "check coding practices", "review code style", "audit file for violations".
@@ -19,19 +19,30 @@ Also triggers on: "check coding practices", "review code style", "audit file for
 1. Resolves target file paths (relative to project root)
 2. Reads `CODING_PRACTICES.md`
 3. Grabs git context (`HEAD` hash + remote URL) for anchored GitHub links
-4. Reads each target file in isolation
-5. Checks every file against every practice → records violations with line range, severity, and fix
-6. Outputs a Markdown report (no code fence — renders directly)
+4. For each file: reads it, identifies all violations, writes `[REVIEW]` markers into the source file, accumulates summary rows
+5. Writes a Markdown report to `.claude/reports/<first-filename-stem>-practice-review-<YYYY-MM-DD>.md`
+
+## Inline Markers
+
+For each violation, a comment is inserted on the line immediately above the violating line. Comment syntax is derived from the file extension and surrounding code context — for mixed-syntax files (e.g. `.tsx`), whichever syntax is valid at that specific line is used.
+
+Marker format: `[REVIEW-<SEVERITY>]: <violation>. Fix: <suggestion>`
+
+Markers are written before the report — if the skill is halted mid-run, per-file markers already written persist.
+
+> Remove `[REVIEW]` markers from source files after addressing each item. Do not commit markers.
 
 ## Report Structure
+
+Saved to `.claude/reports/`, filename: `<first-filename-stem>-practice-review-<YYYY-MM-DD>.md`
 
 | Section | Content |
 |---------|---------|
 | Header | Project, date, analyst/model |
 | Files Analyzed | GitHub-linked at exact commit |
-| Practices Checked | All practices from `CODING_PRACTICES.md` with one-line descriptions |
-| Results | Per-file violation table (Row(s) / Practice / Violation / Suggestion / Severity) |
-| Summary | All violations across all files, sorted High → Medium → Low |
+| Violations | All violations across all files sorted High → Medium → Low |
+
+Violations table columns: File / Line(s) / Severity / Practice / Violation / Suggestion
 
 ## Severity
 
@@ -45,6 +56,5 @@ Also triggers on: "check coding practices", "review code style", "audit file for
 
 - Only report practices defined in `CODING_PRACTICES.md`
 - Analyze each file in isolation — no cross-file blame
-- No violations → write "No violations found." and omit the table
-- Multi-line violations: comma-separate non-contiguous rows (`12, 47, 89`)
+- No violations → include file in Files Analyzed, add note "No violations found in `<filename>`.", omit from table
 - Violation + Suggestion cells: 1 sentence max each

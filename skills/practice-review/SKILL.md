@@ -65,10 +65,7 @@ Collect all violations for this file before writing any markers.
 
 For each violation, insert a comment on the line immediately above the violating line. Write markers **from the highest line number to the lowest** (bottom-to-top) so earlier insertions do not shift subsequent line numbers.
 
-**Comment syntax by file type:**
-- `.ts`, `.tsx`, `.js`, `.jsx`, `.go`, `.java`, `.cs` → `// [REVIEW-<SEVERITY>]: <violation>. Fix: <suggestion>`
-- `.py`, `.rb`, `.sh` → `# [REVIEW-<SEVERITY>]: <violation>. Fix: <suggestion>`
-- Other → `// [REVIEW-<SEVERITY>]: <violation>. Fix: <suggestion>`
+**Comment syntax:** Derive the correct comment syntax from the file extension and surrounding code context. For mixed-syntax files (e.g. `.tsx` where `//` and `<!-- -->` are both valid depending on location), use whichever syntax is valid at the specific line being annotated. The marker text is always: `[REVIEW-<SEVERITY>]: <violation>. Fix: <suggestion>`
 
 Severity in the marker is `HIGH`, `MEDIUM`, or `LOW` (uppercase).
 

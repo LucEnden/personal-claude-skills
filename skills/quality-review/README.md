@@ -1,161 +1,77 @@
-# Software Quality Review Skill
+# quality-review
 
-A specialized skill for assessing the quality of a single component in isolation using ISO-25010 criteria adapted for component-level evaluation.
+Assesses a single component's code quality using ISO-25010 criteria. Infers purpose from the code itself, writes inline `[REVIEW]` markers into the source file as findings are identified (halt-resilient), then produces a structured Markdown report saved to `.claude/reports/`.
 
-## Purpose
+## Trigger
 
-Evaluate code quality across multiple dimensions:
-- **Functional correctness**: Does it do what it's supposed to?
-- **Performance**: Is it efficient?
-- **Reliability**: Does it handle edge cases?
-- **Security**: Are there vulnerabilities?
-- **Maintainability**: Is it easy to understand and modify?
-- **Compatibility**: Does it integrate well?
-- **Usability** (for developers): Is it easy to use?
-- **Portability**: Can it be reused elsewhere?
+```
+/lvde:quality-review <path>
+```
 
-## Triggers
-
-- `/quality [path]`
-- `evaluate component [path]`
-- `component quality review [path]`
+Also triggers on: "evaluate component", "component quality review".
 
 ## Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `component_path` | string | Yes | Path to the component file (TypeScript, React, utilities, etc.) |
-| `standards_context` | string | No | Optional path to project standards file (e.g., `CLAUDE.md`, `coding-standards.md`) |
-| `focus_areas` | array | No | ISO-25010 categories to emphasize (default: all) |
+| `component_path` | string | Yes | Path to the component file |
+| `standards_context` | string | No | Path to standards doc (default: CLAUDE.md, .eslintrc, tsconfig) |
+| `focus_areas` | array | No | ISO-25010 criteria to emphasize (default: all) |
 
-## ISO-25010 Assessment Criteria
+## What It Does
 
-### Functional Suitability
-- **Completeness**: Does it cover all documented requirements?
-- **Correctness**: Does it produce correct outputs for all documented inputs?
-- **Appropriateness**: Does it solve the stated problem effectively?
+1. Infers component purpose from docstrings, types, name, parameters, and test files
+2. Gathers coding standards from `CLAUDE.md`, `.eslintrc`, `tsconfig.json` — asks if none found
+3. Evaluates all 8 ISO-25010 criteria, classifying each finding as line-specific or component-level
+4. Writes `[REVIEW]` markers into the source file
+5. Writes a Markdown report to `.claude/reports/<component-name>-quality-<YYYY-MM-DD>.md`
 
-### Performance Efficiency
-- **Time behavior**: Is performance acceptable for typical use?
-- **Resource utilization**: Does it avoid unnecessary allocations/renders?
-- **Capacity**: Any hard limits properly handled?
+## ISO-25010 Criteria
 
-### Compatibility
-- **Co-existence**: Works with dependencies without conflicts?
-- **Interoperability**: Clear interfaces, proper prop/argument contracts?
+| Criterion | What Is Checked |
+|-----------|----------------|
+| Functional Suitability | Completeness, correctness, appropriateness |
+| Performance Efficiency | Time behavior, resource utilization, capacity |
+| Compatibility | Co-existence with dependencies, clear interfaces |
+| Usability (dev-facing) | Recognizability, learnability, operability, error protection |
+| Reliability | Maturity, availability, fault tolerance, recoverability |
+| Security | Input validation, no XSS/injection, access control |
+| Maintainability | Modularity, reusability, analysability, modifiability, testability |
+| Portability | Adaptability, replaceability |
 
-### Usability (for developers)
-- **Recognizability**: Obvious what the component does from name/docs?
-- **Learnability**: Easy to understand intent from code structure?
-- **Operability**: Clear usage patterns, minimal cognitive load?
-- **Error protection**: Validates inputs, handles edge cases?
+## Inline Markers
 
-### Reliability
-- **Maturity**: Handles normal conditions reliably?
-- **Availability**: No hidden race conditions or state issues?
-- **Fault tolerance**: Gracefully handles unexpected inputs?
-- **Recoverability**: Error states recoverable/testable?
+Two types of findings, two marker styles:
 
-### Security
-- **Confidentiality**: No unvalidated user input usage?
-- **Integrity**: No XSS/injection vulnerabilities?
-- **Authenticity**: Proper access control if applicable?
+**Line-specific** — inserted on the line immediately above the violating line, bottom-to-top order.
+Format: `[REVIEW-<SEVERITY>]: <finding>. Fix: <suggestion>`
 
-### Maintainability
-- **Modularity**: Cohesive, single responsibility?
-- **Reusability**: Useful in other contexts?
-- **Analysability**: Clear control flow, easy to debug?
-- **Modifiability**: Easy to extend without breaking changes?
-- **Testability**: Mockable, has clear dependencies?
+**Component-level** — inserted as a block at the top of the file (after any file-level comments, before imports). Used for holistic concerns with no single line to point at.
+Format: block comment with header `[REVIEW-COMPONENT]`, one line per severity entry.
 
-### Portability
-- **Adaptability**: No platform-specific hardcoding?
-- **Replaceability**: Could be swapped for alternative implementation?
+Comment syntax (both types) is derived from the file extension and surrounding code context. For mixed-syntax files (e.g. `.tsx`), whichever syntax is valid at that specific location is used.
 
-## Workflow
+Markers are written before the report — if halted mid-run, markers already written persist.
 
-### 1. Analyze Purpose
-Extract and infer the component's intended purpose:
-- Extract docstrings, JSDoc comments, TypeScript types
-- Infer from function/class name, parameters, return types
-- Review test files or usage patterns if available
-- Output: Clear statement of component's intended purpose
+> Remove `[REVIEW]` markers from the source file after addressing each item. Do not commit markers.
 
-### 2. Gather Standards
-Collect applicable coding standards and preferences:
-- Check project `CLAUDE.md` for coding conventions
-- Look for `.eslintrc`, `prettier` config, `tsconfig.json`
-- If no standards found, ask engineer via Q&A:
-  - Code style preferences (naming conventions, comment style)?
-  - Framework patterns (React hooks vs classes)?
-  - Performance constraints (bundle size, memory)?
-  - Accessibility/localization requirements?
+## Report Structure
 
-### 3. Assess ISO-25010 Criteria
-Evaluate component against each criterion:
-- Check for compliance with gathered standards
-- Identify violations and gaps
-- Note areas of strength
-- Consider context (is this a utility, React component, validator, etc.?)
+Saved to `.claude/reports/`, filename: `<component-name>-quality-<YYYY-MM-DD>.md`
 
-### 4. Generate Report
-Create structured quality assessment with:
-- Component name and inferred purpose
-- ✓ **Strengths** (ISO-25010 criteria met well)
-- ⚠ **Areas for Improvement** (current gap → recommended fix)
-- ❌ **Issues** (violations requiring action)
-- Standards alignment checklist
-- Overall risk level (Low/Medium/High) with primary risk identified
+| Section | Content |
+|---------|---------|
+| Header | Path, inferred purpose, date, analyst/model |
+| Findings | Table: Line(s) / Severity / Criterion / Finding / Suggestion |
+| Risk Assessment | Overall risk level, primary risk, recommended actions |
 
-## Usage Examples
+Findings table order: component-level rows first, then ascending line number, then severity descending within same line.
 
-```bash
-# Basic component review
-/quality src/components/TransactionForm.tsx
+## Key Principles
 
-# With explicit standards context
-/quality src/lib/validators.ts --standards CLAUDE.md
-
-# Focus on specific ISO-25010 areas
-/quality src/hooks/useTransactions.ts --focus maintainability,testability
-```
-
-## Output Format
-
-```
-## [Component Name]
-**Path:** `src/components/Example.tsx`
-**Purpose:** [Inferred intention from code analysis]
-
-### Quality Assessment
-
-✓ **Strengths** (ISO-25010 criteria met):
-- **Modularity**: Clean separation of concerns, single responsibility principle followed
-- **Testability**: Pure functions with clear inputs/outputs, easy to mock
-
-⚠ **Areas for Improvement**:
-- **Error protection**: No input validation on `data` prop → Add Zod schema validation
-- **Learnability**: Complex logic without comments → Add JSDoc explaining algorithm
-
-❌ **Issues** (violations of standards):
-- **Security**: User input rendered without sanitization → Use DOMPurify or sanitize strings
-
-### Standards Alignment
-- Import ordering: ✓ Compliant
-- Naming conventions: ✓ Compliant
-- Comment style: ✓ Compliant
-- TypeScript strictness: ⚠ Missing return type annotation
-
-### Risk Assessment
-- **Overall Risk Level:** Medium
-- **Primary Risk:** Potential XSS vulnerability in user-controlled content rendering
-- **Recommended Actions:** Implement input sanitization, add prop validation schema
-```
-
-## Notes
-
-- Adapted from ISO/IEC 25010:2023 for component-level evaluation (not system-level)
-- Focuses on "usability for developers" rather than end-user usability
-- Infers purpose from code itself—no external documentation required
-- Provides actionable recommendations, not just criticism
-- Respects project standards from `CLAUDE.md` and config files
+- **Write markers before report** — if halted, per-file markers persist
+- **Inference over documentation** — purpose inferred from code itself
+- **Standards-aware** — respects project conventions from CLAUDE.md and config files
+- **Actionable** — recommendations include why and how to fix, not just criticism
+- **Component-scoped** — ISO-25010 adapted for single modules, not system-level
+- **Developer-centric** — evaluates usability for developers, not end users
