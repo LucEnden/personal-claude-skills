@@ -81,7 +81,32 @@ If there are no component-level findings, omit the block entirely.
 
 If there are no findings at all (line-specific or component-level), skip Step 4 entirely.
 
-### Step 5: Write summary report
+### Step 5: Output findings
+
+Check for `SPEC.md` at the project root.
+
+#### If SPEC.md exists — append §T task rows
+
+For each finding (component-level first, then by line ascending, High before Low within same line), append a task row to the §T section of `SPEC.md`.
+
+- Read existing §T rows to find the highest task number `N`; increment for each new row.
+- Row format: `T<N>|.|fix <criterion>: <finding summary> (<file>:<line>)|`
+  - For component-level findings use `(<file>:component)` as location
+  - Status `.` = not started
+  - Description ≤ 60 chars; truncate if needed
+  - Deps: cite relevant §V invariants if any apply, otherwise omit
+- If §T section does not exist, add it after the last existing section.
+
+Example rows appended to §T:
+```
+T8|.|fix Reliability: no error boundary crashes parent tree (Form.tsx:component)|
+T9|.|fix Maintainability: hardcoded timeout value (Form.tsx:42)|
+T10|.|fix Usability: unclear param name `d` (Form.tsx:89)|
+```
+
+Tell user: "Added N task(s) to §T in SPEC.md."
+
+#### If SPEC.md absent — write report to `.claude/reports/`
 
 Save the report to `.claude/reports/` (create directory if absent).
 
@@ -143,7 +168,8 @@ Tell the user the saved path after writing.
 
 ## Key Principles
 
-- **Write markers before report** — if halted, per-file markers persist
+- **Write markers before output** — if halted, per-file markers persist
+- **SPEC.md first** — append findings as §T task rows when SPEC.md exists at project root; fall back to `.claude/reports/` only when absent
 - **Inference over documentation** — purpose inferred from code itself
 - **Standards-aware** — respects project conventions from CLAUDE.md and config files
 - **Actionable** — recommendations include "why" and "how to fix", not just criticism

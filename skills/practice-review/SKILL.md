@@ -90,9 +90,33 @@ If a file has zero violations, skip 4c entirely.
 For each violation written, record:
 - File name (short), line(s), severity, practice name, violation summary, suggestion summary
 
-### 5. Write summary report
+### 5. Output violations
 
-After all files are processed, save the report to `.claude/reports/` (create directory if absent).
+After all files are processed, check for `SPEC.md` at the project root.
+
+#### If SPEC.md exists — append §T task rows
+
+For each violation (High first, then Medium, then Low), append a task row to the §T section of `SPEC.md`.
+
+- Read existing §T rows to find the highest task number `N`; increment for each new row.
+- Row format: `T<N>|.|fix <practice>: <violation summary> (<file>:<line>)|`
+  - Status `.` = not started
+  - Description ≤ 60 chars; truncate if needed
+  - Deps: cite relevant §V invariants if any apply, otherwise omit
+- If §T section does not exist, add it after the last existing section.
+
+Example rows appended to §T:
+```
+T12|.|fix ErrorHandling: missing try/catch on fetch (auth.ts:42)|
+T13|.|fix NeverNesting: triple-nested if/else (validators.ts:12)|
+T14|.|fix NoMagicValues: literal "pending" (validators.ts:89)|V3
+```
+
+Tell user: "Added N task(s) to §T in SPEC.md."
+
+#### If SPEC.md absent — write report to `.claude/reports/`
+
+Save the report to `.claude/reports/` (create directory if absent).
 
 Filename: `<first-filename-stem>-practice-review-<YYYY-MM-DD>.md`
 
@@ -133,8 +157,9 @@ Tell the user the saved path after writing.
 
 ## Rules
 
-- Write markers to source files **before** writing the summary report. If halted, per-file markers persist.
+- Write markers to source files **before** outputting violations. If halted, per-file markers persist.
 - Only report practices from `CODING_PRACTICES.md`. Do not invent new ones.
 - Violation and Suggestion cells: 1 sentence max each.
+- SPEC.md takes priority over `.claude/reports/` — check for it first; only fall back to report file if absent.
 - Do NOT wrap the report in a code block — output raw Markdown so it renders correctly.
-- Always write the report file. Do not only print to conversation.
+- Always write output (SPEC.md §T rows or report file). Do not only print to conversation.
