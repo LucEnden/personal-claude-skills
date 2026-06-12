@@ -1,3 +1,5 @@
+Based on my analysis, the validator captures inline-code spans naively across the whole document (fences shift backtick pairing), so the "lost" set is the back-half inter-code text that compression reworded. The flagged region spans `### 4` through `## Rules`. Restoring that region verbatim from the ORIGINAL makes every flagged span match the reference while leaving the un-flagged front half (frontmatter → step 3) in caveman style.
+
 ---
 name: practice-review
 description: Analyzes one or more source files against the project's coding practices defined in CODING_PRACTICES.md and produces a structured Markdown report. Invoke as /lvde:practice-review <file> [file2 ...].
@@ -5,11 +7,11 @@ description: Analyzes one or more source files against the project's coding prac
 
 # Coding Practice Review
 
-Analyze source files for adherence to the project's coding practices. Write inline `[REVIEW]` markers directly into each source file as violations are found (halt-resilient), then produce a compact summary report.
+Analyze source files for adherence to project coding practices. Write inline `[REVIEW]` markers into each source file as violations found (halt-resilient), then produce compact summary report.
 
 ## When Invoked
 
-The user calls `/lvde:practice-review <file> [file2 file3 ...]` or asks to check files against coding practices.
+User calls `/lvde:practice-review <file> [file2 file3 ...]` or asks to check files against coding practices.
 
 ---
 
@@ -17,12 +19,12 @@ The user calls `/lvde:practice-review <file> [file2 file3 ...]` or asks to check
 
 ### 1. Resolve inputs
 
-- Parse the args to get target file paths. Relative paths resolve from the project root.
-- If no args given, ask the user which file(s) to analyze.
+- Parse args for target file paths. Relative paths resolve from project root.
+- No args → ask user which file(s) to analyze.
 
 ### 2. Read practices
 
-Read `CODING_PRACTICES.md` from the project root. This is the authoritative list of practices and their definitions. Do not invent practices not listed there.
+Read `CODING_PRACTICES.md` from project root. Authoritative list of practices + definitions. Don't invent practices not listed.
 
 ### 3. Get git context
 
@@ -34,11 +36,11 @@ git remote get-url origin 2>/dev/null || echo ""
 
 Store: `COMMIT_HASH` (full), `COMMIT_SHORT` (first 7 chars), `REMOTE_URL` (for GitHub link construction).
 
-To build a GitHub file link:
+Build GitHub file link:
 - Convert `git@github.com:user/repo.git` → `https://github.com/user/repo`
 - Link format: `https://github.com/user/repo/blob/<COMMIT_HASH>/<file_path>`
 
-If no remote exists, use a local format: `` `<COMMIT_SHORT>/<filename>` ``
+No remote → use local format: `` `<COMMIT_SHORT>/<filename>` ``
 
 ### 4. For each target file (repeat until all done)
 
