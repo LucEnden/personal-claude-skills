@@ -1,6 +1,6 @@
 {
   "name": "lvde",
-  "description": "Personal Claude Code skills: ISO-25010 quality review, coding practice review, and i18n violation fix",
+  "description": "Personal Claude Code skills: ISO-25010 quality review, coding practice review, i18n violation fix, and test authoring/extraction",
   "version": "1.0.0",
   "author": {
     "name": "LucEnden",

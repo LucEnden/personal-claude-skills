@@ -9,7 +9,7 @@ Authors a single test (or test file) for a given source file or feature. Always 
 ## Triggers
 
 ```
-/test-author
+/lvde:test-author
 "write a test for"
 "test this file"
 "add tests for"

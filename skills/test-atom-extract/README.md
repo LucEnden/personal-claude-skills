@@ -5,7 +5,7 @@ Scans the test tree for duplicated setup-then-assert patterns and proposes extra
 ## Triggers
 
 ```
-/test-atom-extract
+/lvde:test-atom-extract
 "extract test atom"
 "find duplicate tests"
 ```

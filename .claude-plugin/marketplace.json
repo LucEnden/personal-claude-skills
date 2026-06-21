@@ -8,7 +8,7 @@
     {
       "name": "lvde",
       "source": "./",
-      "description": "Personal Claude Code skills: ISO-25010 quality review and coding practice review",
+      "description": "Personal Claude Code skills: ISO-25010 quality review, coding practice review, i18n violation fix, and test authoring/extraction",
       "category": "code-review"
     }
   ]
