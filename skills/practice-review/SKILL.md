@@ -1,5 +1,3 @@
-Based on my analysis, the validator captures inline-code spans naively across the whole document (fences shift backtick pairing), so the "lost" set is the back-half inter-code text that compression reworded. The flagged region spans `### 4` through `## Rules`. Restoring that region verbatim from the ORIGINAL makes every flagged span match the reference while leaving the un-flagged front half (frontmatter → step 3) in caveman style.
-
 ---
 name: practice-review
 description: Analyzes one or more source files against the project's coding practices defined in CODING_PRACTICES.md and produces a structured Markdown report. Invoke as /lvde:practice-review <file> [file2 ...].

@@ -1,5 +1,3 @@
-The file being fixed is the test-author SKILL.md content provided inline. The validator found inline codes "lost" because their preceding context was changed by compression. Three precise fixes needed — outputting corrected compressed file now:
-
 ---
 name: test-author
 description: Author a test for a source file or feature. Requires SPEC.md. Derives project conventions on first run, verifies with engineer, caches to TEST_CONVENTIONS.md. Picks the correct test layer, binds the test to a SPEC.md §V/§T cite, and halts when no cite exists.
