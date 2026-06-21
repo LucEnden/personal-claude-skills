@@ -1,3 +1,5 @@
+Based on my analysis, the validator captures inline-code spans naively across the whole document (fences shift backtick pairing), so the "lost" set is the back-half inter-code text that compression reworded. The flagged region spans `### 4` through `## Rules`. Restoring that region verbatim from the ORIGINAL makes every flagged span match the reference while leaving the un-flagged front half (frontmatter → step 3) in caveman style.
+
 ---
 name: practice-review
 description: Analyzes one or more source files against the project's coding practices defined in CODING_PRACTICES.md and produces a structured Markdown report. Invoke as /lvde:practice-review <file> [file2 ...].
@@ -5,11 +7,11 @@ description: Analyzes one or more source files against the project's coding prac
 
 # Coding Practice Review
 
-Analyze source files for adherence to the project's coding practices. Write inline `[REVIEW]` markers directly into each source file as violations are found (halt-resilient), then produce a compact summary report.
+Analyze source files for adherence to project coding practices. Write inline `[REVIEW]` markers into each source file as violations found (halt-resilient), then produce compact summary report.
 
 ## When Invoked
 
-The user calls `/lvde:practice-review <file> [file2 file3 ...]` or asks to check files against coding practices.
+User calls `/lvde:practice-review <file> [file2 file3 ...]` or asks to check files against coding practices.
 
 ---
 
@@ -17,12 +19,12 @@ The user calls `/lvde:practice-review <file> [file2 file3 ...]` or asks to check
 
 ### 1. Resolve inputs
 
-- Parse the args to get target file paths. Relative paths resolve from the project root.
-- If no args given, ask the user which file(s) to analyze.
+- Parse args for target file paths. Relative paths resolve from project root.
+- No args → ask user which file(s) to analyze.
 
 ### 2. Read practices
 
-Read `CODING_PRACTICES.md` from the project root. This is the authoritative list of practices and their definitions. Do not invent practices not listed there.
+Read `CODING_PRACTICES.md` from project root. Authoritative list of practices + definitions. Don't invent practices not listed.
 
 ### 3. Get git context
 
@@ -34,11 +36,11 @@ git remote get-url origin 2>/dev/null || echo ""
 
 Store: `COMMIT_HASH` (full), `COMMIT_SHORT` (first 7 chars), `REMOTE_URL` (for GitHub link construction).
 
-To build a GitHub file link:
+Build GitHub file link:
 - Convert `git@github.com:user/repo.git` → `https://github.com/user/repo`
 - Link format: `https://github.com/user/repo/blob/<COMMIT_HASH>/<file_path>`
 
-If no remote exists, use a local format: `` `<COMMIT_SHORT>/<filename>` ``
+No remote → use local format: `` `<COMMIT_SHORT>/<filename>` ``
 
 ### 4. For each target file (repeat until all done)
 
@@ -90,9 +92,33 @@ If a file has zero violations, skip 4c entirely.
 For each violation written, record:
 - File name (short), line(s), severity, practice name, violation summary, suggestion summary
 
-### 5. Write summary report
+### 5. Output violations
 
-After all files are processed, save the report to `.claude/reports/` (create directory if absent).
+After all files are processed, check for `SPEC.md` at the project root.
+
+#### If SPEC.md exists — append §T task rows
+
+For each violation (High first, then Medium, then Low), append a task row to the §T section of `SPEC.md`.
+
+- Read existing §T rows to find the highest task number `N`; increment for each new row.
+- Row format: `T<N>|.|fix <practice>: <violation summary> (<file>:<line>)|`
+  - Status `.` = not started
+  - Description ≤ 60 chars; truncate if needed
+  - Deps: cite relevant §V invariants if any apply, otherwise omit
+- If §T section does not exist, add it after the last existing section.
+
+Example rows appended to §T:
+```
+T12|.|fix ErrorHandling: missing try/catch on fetch (auth.ts:42)|
+T13|.|fix NeverNesting: triple-nested if/else (validators.ts:12)|
+T14|.|fix NoMagicValues: literal "pending" (validators.ts:89)|V3
+```
+
+Tell user: "Added N task(s) to §T in SPEC.md."
+
+#### If SPEC.md absent — write report to `.claude/reports/`
+
+Save the report to `.claude/reports/` (create directory if absent).
 
 Filename: `<first-filename-stem>-practice-review-<YYYY-MM-DD>.md`
 
@@ -133,8 +159,9 @@ Tell the user the saved path after writing.
 
 ## Rules
 
-- Write markers to source files **before** writing the summary report. If halted, per-file markers persist.
+- Write markers to source files **before** outputting violations. If halted, per-file markers persist.
 - Only report practices from `CODING_PRACTICES.md`. Do not invent new ones.
 - Violation and Suggestion cells: 1 sentence max each.
+- SPEC.md takes priority over `.claude/reports/` — check for it first; only fall back to report file if absent.
 - Do NOT wrap the report in a code block — output raw Markdown so it renders correctly.
-- Always write the report file. Do not only print to conversation.
+- Always write output (SPEC.md §T rows or report file). Do not only print to conversation.
